@@ -1,4 +1,11 @@
 function getCreditCardInfo(){
+　let checkDate = new Date();
+  checkDate.getDate() > 20 ? checkDate.setMonth(checkDate.getMonth() + 1) : checkDate.setMonth(checkDate.getMonth());
+  const checkTargetMonthName = String(checkDate.getMonth() + 1).padStart(2, '0');
+  const checkTargetSheetName = checkDate.getFullYear() + checkTargetMonthName;
+  if (SpreadsheetApp.getActiveSpreadsheet().getSheetByName(checkTargetSheetName).getRange('A2').getValue() != ''){
+    return;
+  }
   let searchBefore = new Date();
   let searchAfter = new Date();
   searchAfter.setMonth(searchAfter.getMonth() - 1);
@@ -8,8 +15,8 @@ function getCreditCardInfo(){
     thread => thread.getMessages().forEach(
       message => message.getAttachments().forEach(attachment => {
         const csvname = attachment.getName().toLowerCase();
-        const namecheck = /^\d{6}\.csv$/;
-        if (namecheck.test(csvname)){
+        const namecheck = checkTargetSheetName + '.csv';
+        if (csvname == namecheck){
           const csvtext = attachment.getDataAsString('cp932');
           const splitLf = csvtext.split(/\n/);
           let splitComma = splitLf.map(x => x.split(','));
@@ -30,8 +37,9 @@ function getCreditCardInfo(){
             }
             return res;
           });
-          SpreadsheetApp.getActiveSpreadsheet().getSheetByName(csvname.substr(0, 6)).clearContents();
-          SpreadsheetApp.getActiveSpreadsheet().getSheetByName(csvname.substr(0, 6)).getRange(1, 1, setCsvValues.length, setCsvValues[0].length).setValues(setCsvValues);
+          const targetSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(checkTargetSheetName);
+          targetSheet.clearContents();
+          targetSheet.getRange(1, 1, setCsvValues.length, setCsvValues[0].length).setValues(setCsvValues);
         };
       })
     )
@@ -52,7 +60,7 @@ function ssInit(){
   const targetSheetName = /^\d{6}$/;
   const targetSheets = sheets.filter(x => targetSheetName.test(x.getName()));
   targetSheets.forEach(x => {
-    const targetMm = x.getName().substr(4, 2);
+    const targetMm = x.getName().substring(4, 6);
     const setYear = targetMm < 4 ? nextYyyy : yyyy;
     x.setName(setYear + targetMm);
     x.clearContents();
