@@ -50,6 +50,7 @@ function ssInit(){
   const yyyy = today.getFullYear();
   const nextYyyy = yyyy + 1;
   const ss = SpreadsheetApp.getActiveSpreadsheet();
+  ss.rename(yyyy + '年度クレジットカード明細');
   const listSheet = ss.getSheetByName('List');
   listSheet.getRange('B1').setValue(yyyy + '/04/01');
   const listLastRow = listSheet.getDataRange().getLastRow();
