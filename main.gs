@@ -66,4 +66,22 @@ function ssInit(){
     x.setName(setYear + targetMm);
     x.clearContents();
   });
+  setTriggers();
+}
+function setTriggers(){
+  ScriptApp.getProjectTriggers().forEach(x => ScriptApp.deleteTrigger(x));
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const nextYyyy = yyyy + 1;
+  const targetyyyyMonths = [...Array(9)].map((_, idx) => idx + 3);
+  const targetNextYyyyMonths = [...Array(3)].map((_, idx) => idx);
+  const targetYyyyMm = targetyyyyMonths.map(x => [yyyy, x, 1]);
+  const targetNextYyyyMm = targetNextYyyyMonths.map(x => [nextYyyy, x, 1]);
+  const target = targetYyyyMm.concat(targetNextYyyyMm);
+  target.forEach(x => {
+    let target = new Date(x[0], x[1], x[2]);
+    target.setHours(8);
+    target.setMinutes(10); 
+    ScriptApp.newTrigger('getCreditCardInfo').timeBased().at(target).create();  
+  });
 }
