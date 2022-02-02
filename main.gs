@@ -9,8 +9,16 @@ function getCreditCardInfo(){
   let searchBefore = new Date();
   let searchAfter = new Date();
   searchAfter.setMonth(searchAfter.getMonth() - 1);
-  const targetTerm = 'subject:(クレジットカード明細) after:' + searchAfter.toLocaleDateString() + ' before:' + searchBefore.toLocaleDateString();
-  const gmailThreads = GmailApp.search(targetTerm, 0, 1);
+  const targetTerm1 = 'subject:(クレジットカード明細) after:' + searchAfter.toLocaleDateString() + ' before:' + searchBefore.toLocaleDateString();
+  const targetTerm2 = 'subject:(クレジットカード明細) newer:' + searchBefore.toLocaleDateString();
+  const targetTerms = [targetTerm1, targetTerm2];
+  let gmailThreads;
+  for (let i = 0; i < targetTerms.length; i++){
+    gmailThreads = GmailApp.search(targetTerms[i], 0, 1);
+    if (gmailThreads.length > 0){
+      break;
+    }
+  }
   gmailThreads.forEach(
     thread => thread.getMessages().forEach(
       message => message.getAttachments().forEach(attachment => {
