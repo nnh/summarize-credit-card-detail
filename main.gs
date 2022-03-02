@@ -6,14 +6,14 @@ function getCreditCardInfo(){
   if (SpreadsheetApp.getActiveSpreadsheet().getSheetByName(checkTargetSheetName).getRange('A2').getValue() != ''){
     return;
   }
-  let searchBefore = new Date();
+  let searchBefore = Utilities.formatDate(new Date(), 'JST', 'M/d/yyyy');
   let searchAfter = new Date();
   searchAfter.setMonth(searchAfter.getMonth() - 1);
-  const targetTerm1 = 'subject:(クレジットカード明細) after:' + searchAfter.toLocaleDateString() + ' before:' + searchBefore.toLocaleDateString();
-  const targetTerm2 = 'subject:(クレジットカード明細) newer:' + searchBefore.toLocaleDateString();
-  const targetTerms = [targetTerm1, targetTerm2];
+  const targetTerm1 = 'subject:(クレジットカード明細) after:' + searchAfter.toLocaleDateString() + ' before:' + searchBefore;
+  const targetTerm2 = 'subject:(クレジットカード明細) newer:' + searchBefore;
+  const targetTerms = [targetTerm2, targetTerm1];
   let gmailThreads;
-  for (let i = 0; i < targetTerms.length; i++){
+  for (let i = 0; i < targetTerms.length; i--){
     gmailThreads = GmailApp.search(targetTerms[i], 0, 1);
     if (gmailThreads.length > 0){
       break;
