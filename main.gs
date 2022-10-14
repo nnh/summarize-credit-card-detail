@@ -38,6 +38,9 @@ function getCreditCardInfo(){
             if (res[1] == 'カブシキガイシヤボツクスジヤパ'){
               res[1] = 'BOX';
             }
+            if (/PVTLTRACKER/.test(res[1])){
+              res[1] = res[1].replace('PVTLTRACKER', 'PIVOTAL TRACKER');
+            }
             return res;
           });
           const targetSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(checkTargetSheetName);
