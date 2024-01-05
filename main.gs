@@ -41,7 +41,10 @@ function getCreditCardInfo(){
             if (/PVTLTRACKER/.test(res[1])){
               res[1] = res[1].replace('PVTLTRACKER', 'PIVOTAL TRACKER');
             }
-            if (/^GITHUB$/.test(res[1]) && !/^[0-9]+$/.test(res[2])){
+            if (
+              /^GITHUB$/.test(res[1]) && !/^[0-9]+$/.test(res[2]) ||
+              /^DOCKER$/.test(res[1]) && !/^[0-9]+$/.test(res[2])
+            ){
               res[2] = res[3];
               res[5] = res[6];
             }
