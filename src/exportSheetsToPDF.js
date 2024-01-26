@@ -1,5 +1,7 @@
-function exportSheetsToPDF_(spreadsheet, outputTargetYears){
-  const outputFolder = DriveApp.getFolderById(PropertiesService.getScriptProperties().getProperty("pdfSaveFolderId"));
+function exportSheetsToPDF_(spreadsheet, outputTargetYears) {
+  const outputFolder = DriveApp.getFolderById(
+    PropertiesService.getScriptProperties().getProperty('pdfSaveFolderId')
+  );
   const fileId = spreadsheet.getId();
   const baseUrl = `https://docs.google.com/spreadsheets/d/${fileId}/export?id=${fileId}`;
   const parameters = new Map([
@@ -16,19 +18,41 @@ function exportSheetsToPDF_(spreadsheet, outputTargetYears){
   };
   const todayText = getFormattedDate_();
   outputTargetYears.forEach(year => {
-    createPdf_(spreadsheet, `${year}_1`, url, fetchOptions, outputFolder, todayText); 
-    createPdf_(spreadsheet, `${year}_2`, url, fetchOptions, outputFolder, todayText); 
+    createPdf_(
+      spreadsheet,
+      `${year}_1`,
+      url,
+      fetchOptions,
+      outputFolder,
+      todayText
+    );
+    createPdf_(
+      spreadsheet,
+      `${year}_2`,
+      url,
+      fetchOptions,
+      outputFolder,
+      todayText
+    );
   });
 }
-function createPdf_(spreadsheet, targetSheetName, url, fetchOptions, outputFolder, todayText){
+function createPdf_(
+  spreadsheet,
+  targetSheetName,
+  url,
+  fetchOptions,
+  outputFolder,
+  todayText
+) {
   spreadsheet.getSheets().forEach(sheet => sheet.showSheet());
   spreadsheet.getSheets().forEach(target => {
-    if (target.getName() !== targetSheetName){
+    if (target.getName() !== targetSheetName) {
       target.hideSheet();
     }
-  }); 
-  const [year, seq] = targetSheetName.split("_");
-  const newFileName = todayText + " OSCR理事会用" + seq + "(" + year + ")" + '.pdf';
+  });
+  const [year, seq] = targetSheetName.split('_');
+  const newFileName =
+    todayText + ' OSCR理事会用' + seq + '(' + year + ')' + '.pdf';
   const blob = UrlFetchApp.fetch(url, fetchOptions)
     .getBlob()
     .setName(newFileName);
