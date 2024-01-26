@@ -68,6 +68,10 @@ function onOpen() {
   const ui = SpreadsheetApp.getUi();
   // メニューに表示されるメニュー項目の作成
   ui.createMenu('クレジットカード明細集計')
+    .addItem('CSV保存', 'getCreditCardInfo')
+    .addItem('CSV取り込み', 'readCsvFile')
     .addItem('表示名設定', 'getDisplayName')
+    .addItem('集計用シート作成', 'execCreateListSheetByMenu')
+    .addItem('PDF出力', 'oscrExpenseAggregator')
     .addToUi();
 }

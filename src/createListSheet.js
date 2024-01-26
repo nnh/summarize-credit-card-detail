@@ -1,3 +1,9 @@
+function execCreateListSheetByMenu() {
+  const userInput = Browser.inputBox('作成対象の年度を半角数字4桁で入力してください', null, Browser.Buttons.OK_CANCEL);
+  if (/^\d{4}$/.test(userInput)){
+    createListSheet_(String(userInput));    
+  }
+}
 function execCreateListSheet() {
   const targetYear = new Date().getFullYear().toString();
   if (outputSpreadSheet.getSheetByName(targetYear) !== null){
@@ -50,11 +56,19 @@ function setSheetFormat_(targetSheet){
   targetSheet.setColumnWidth(outputSheetNumber.get("categoryColumn"), 168);
   targetSheet.setColumnWidth(outputSheetNumber.get("serviceColumn"), 419);
   targetSheet.setFrozenColumns(outputSheetNumber.get("itemColumn"));
-  targetSheet.getRange(outputSheetNumber.get("bodyStartRow"), outputSheetNumber.get("itemColumn"), targetSheet.getLastRow() - 2, targetSheet.getLastColumn()).setBorder(true, false, true, false, false, false);
-  targetSheet.getRange(outputSheetNumber.get("headerRow"), outputSheetNumber.get("yearStartColumn"), targetSheet.getLastRow() - 1, outputSheetNumber.get("sumColumn") - outputSheetNumber.get("yearStartColumn")).setBorder(null, true, null, true, null, null);
-  targetSheet.getRange(outputSheetNumber.get("headerRow"), outputSheetNumber.get("sumColumn"), targetSheet.getLastRow() - 1, 4).setBorder(null, true, null, true, null, null);
-  targetSheet.getRange(outputSheetNumber.get("headerRow"), outputSheetNumber.get("itemColumn"), 1, targetSheet.getLastColumn()).setHorizontalAlignment("center");
-  targetSheet.getRange(outputSheetNumber.get("bodyStartRow"), outputSheetNumber.get("yearStartColumn"), targetSheet.getLastRow(), outputSheetNumber.get("categoryColumn") - outputSheetNumber.get("yearStartColumn")).setNumberFormat('#,##0');
+  const sumRowNumber = targetSheet.getLastRow() - 2;
+  targetSheet.getRange(outputSheetNumber.get("headerRow"), outputSheetNumber.get("itemColumn"), targetSheet.getLastRow(), targetSheet.getLastColumn())
+    .setBorder(true, true, true, true, false, false)
+  targetSheet.getRange(outputSheetNumber.get("bodyStartRow"), outputSheetNumber.get("itemColumn"), sumRowNumber, targetSheet.getLastColumn())
+    .setBorder(true, null, true, null, null, null);
+  targetSheet.getRange(outputSheetNumber.get("headerRow"), outputSheetNumber.get("yearStartColumn"), targetSheet.getLastRow(), outputSheetNumber.get("sumColumn") - outputSheetNumber.get("yearStartColumn"))
+    .setBorder(null, true, null, true, null, null);
+  targetSheet.getRange(outputSheetNumber.get("headerRow"), outputSheetNumber.get("sumColumn"), targetSheet.getLastRow(), 4)
+    .setBorder(null, true, null, true, null, null);
+  targetSheet.getRange(outputSheetNumber.get("headerRow"), outputSheetNumber.get("itemColumn"), 1, targetSheet.getLastColumn())
+    .setHorizontalAlignment("center");
+  targetSheet.getRange(outputSheetNumber.get("bodyStartRow"), outputSheetNumber.get("yearStartColumn"), targetSheet.getLastRow(), outputSheetNumber.get("categoryColumn") - outputSheetNumber.get("yearStartColumn"))
+    .setNumberFormat('#,##0');
 }
 function sortMatrix_(inputMatrix, sortIndex) {
   if (!Array.isArray(inputMatrix) || inputMatrix.length === 0 || !Array.isArray(inputMatrix[0])) {
