@@ -5,6 +5,9 @@ function readCsvFile() {
   );
   let [fileNames, startRow] =
     getTargetfileNamesAndOutputStartRow_(outputCsvSheet);
+  if (fileNames === null) {
+    return;
+  }
   fileNames.forEach((fileId, fileName) => {
     const ymText =
       "'" +
@@ -65,15 +68,31 @@ function editCsvData_(inputCsvData) {
   return csvData;
 }
 function getTargetfileNamesAndOutputStartRow_(outputCsvSheet) {
+  const ymHeader = '対象年月';
+  const existsYearAndMonths = new Set(
+    outputCsvSheet
+      .getRange('A:A')
+      .getValues()
+      .filter(x => x[0] !== ymHeader && x[0] !== '')
+      .map(x => x[0].split('月')[0].split('年'))
+      .map(([year, month]) =>
+        month <= 9 ? `${year}0${month}.csv` : `${year}${month.toString()}.csv`
+      )
+  );
   const files = csvSaveFolder.getFiles();
   const fileNames = new Map();
   while (files.hasNext()) {
     const file = files.next();
-    fileNames.set(file.getName(), file.getId());
+    if (!existsYearAndMonths.has(file.getName())) {
+      fileNames.set(file.getName(), file.getId());
+    }
+  }
+  if (fileNames.size === 0) {
+    return [null, null];
   }
   let lastRow = outputCsvSheet.getLastRow();
   const headerArray = [
-    '対象年月',
+    ymHeader,
     '年月日',
     '項目名',
     'filler1',
@@ -90,6 +109,8 @@ function getTargetfileNamesAndOutputStartRow_(outputCsvSheet) {
       .getRange(1, 1, 1, headerArray.length)
       .setValues(Array(headerArray.map(x => [x])));
     lastRow = lastRow + 2;
+  } else {
+    lastRow = lastRow + 1;
   }
   return [fileNames, lastRow];
 }
