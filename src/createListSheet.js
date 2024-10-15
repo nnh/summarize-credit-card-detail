@@ -60,7 +60,7 @@ function createListSheet_(targetYear) {
     const sumFormulas = [
       `=SUM(B${idx + 2}:M${idx + 2})`,
       `=round(N${idx + 2}/countif(indirect(ADDRESS(match("計",$A:$A,0),2) & ":" & ADDRESS(match("計",$A:$A,0),13)),">0"))`,
-      `=if(isna(vlookup(A${idx + 2},${Number(targetYear) - 1}!A:O,15,false)), "", vlookup(A${idx + 2},${Number(targetYear) - 1}!A:O,15,false))`,
+      `=if(isna(vlookup(A${idx + 2},${Number(targetYear) - 1}!A:O,15,false)), 0, vlookup(A${idx + 2},${Number(targetYear) - 1}!A:O,15,false))`,
       `=O${idx + 2}-P${idx + 2}`,
       `=iferror(vlookup(A${idx + 2},'${inputSheetNames.get('serviceListSheet')}'!A:D,3,false))`,
       `=iferror(vlookup(A${idx + 2},'${inputSheetNames.get('serviceListSheet')}'!A:D,4,false))`,
