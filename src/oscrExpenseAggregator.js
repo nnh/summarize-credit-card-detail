@@ -47,6 +47,11 @@ function createSheetForOscrExpenseAggregator_(inputSheet, outputSheetName) {
 }
 function copyValuesAndColumnWidths_(inputSheet, outputSheet) {
   outputSheet.clear();
+  for (let i = 0; i < 100; i++) {
+    if (outputSheet.isRowHiddenByUser(i + 1)) {
+      outputSheet.showRows(i + 1);
+    }
+  }
   inputSheet.getDataRange().copyTo(outputSheet.getRange(1, 1));
   let columnWidths = [];
   for (let i = 1; i <= inputSheet.getLastColumn(); i++) {
