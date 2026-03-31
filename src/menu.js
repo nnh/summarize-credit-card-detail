@@ -11,8 +11,6 @@ function onOpen() {
     .addSeparator() // 区切り線
     .addItem('2. 理事会用PDFを作成', 'exportSummaryToPDF')
     .addSeparator()
-    .addItem('🔍 データの整合性チェック', 'validateSummaries_')
-    .addSeparator()
     .addSubMenu(
       ui
         .createMenu('⚙️ 設定・管理')
