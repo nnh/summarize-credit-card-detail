@@ -236,7 +236,7 @@ function updateAllSummaries_() {
 
 /**
  * 特定年度のクロス集計表シートを生成・更新する。
- * 分母は「項目ごとの出現月数」ではなく「年度開始(4月)からデータが存在する最新月までの月数」を使用する。
+ * 末尾に「カテゴリ」「サービス内容」の列を追加し、サービス一覧シートからVLOOKUPで参照する。
  * @param {string} year - 年度（YYYY）
  * @param {Object} itemsObj - 項目と月ごとの金額を格納したオブジェクト
  * @private
@@ -254,78 +254,135 @@ function generateYearlySummary_(year, itemsObj) {
   // 会計年度の並び順（4月始まり）
   const monthOrder = [4, 5, 6, 7, 8, 9, 10, 11, 12, 1, 2, 3];
 
-  // --- 【変更箇所：分母（経過月数）の算定】 ---
-  // 4月を起点として、データが存在する最新の月が何番目かを特定する
+  // 分母（経過月数）の算定
   let maxMonthIdx = 0;
   monthOrder.forEach((m, idx) => {
     const monthKey = ('0' + m).slice(-2);
-    // いずれかの項目において、その月のデータが存在するかチェック
     const hasDataAnywhere = Object.values(itemsObj).some(
       itemMonths => itemMonths[monthKey] !== undefined
     );
-    if (hasDataAnywhere) {
-      maxMonthIdx = idx;
-    }
+    if (hasDataAnywhere) maxMonthIdx = idx;
   });
-  const elapsedMonths = maxMonthIdx + 1; // 4月から最新データ月までの総月数
-  // ------------------------------------------
+  const elapsedMonths = maxMonthIdx + 1;
 
-  // ヘッダーの作成
+  // --- ヘッダーの作成 ---
   const header = ['項目名'];
   monthOrder.forEach(m => {
     const displayYear = m <= 3 ? parseInt(year) + 1 : year;
     header.push(`${displayYear}年${('0' + m).slice(-2)}月`);
   });
-  header.push('計', '月平均', '前年度月平均', '差額');
+  // 右側の列を追加
+  header.push(
+    '計',
+    '月平均',
+    '前年度月平均',
+    '差額',
+    'カテゴリ',
+    'サービス内容'
+  );
 
   const rows = [header];
+  const sortedItemNames = Object.keys(itemsObj).sort();
 
-  // データの作成
-  Object.keys(itemsObj)
-    .sort()
-    .forEach(name => {
-      const row = [name];
-      let rowTotal = 0;
+  // --- データの作成 ---
+  sortedItemNames.forEach((name, idx) => {
+    const row = [name];
+    let rowTotal = 0;
 
-      monthOrder.forEach(m => {
-        const monthKey = ('0' + m).slice(-2);
-        const val = itemsObj[name][monthKey] || 0;
-        row.push(val);
-        rowTotal += val;
-      });
-
-      // 個別の出現数に関わらず、一律で elapsedMonths（経過月数）で割る
-      const avg = elapsedMonths > 0 ? rowTotal / elapsedMonths : 0;
-      // -------------------------------
-
-      const prevAvg = prevYearAvgMap[name] || 0;
-      row.push(rowTotal, avg, prevAvg, avg - prevAvg);
-      rows.push(row);
+    monthOrder.forEach(m => {
+      const monthKey = ('0' + m).slice(-2);
+      const val = itemsObj[name][monthKey] || 0;
+      row.push(val);
+      rowTotal += val;
     });
 
-  // 列合計（最下行）の計算
+    const avg = elapsedMonths > 0 ? rowTotal / elapsedMonths : 0;
+    const prevAvg = prevYearAvgMap[name] || 0;
+    const diff = avg - prevAvg;
+
+    // データ行に数式をセットするための準備
+    // 行番号は、ヘッダーが1行目なので idx + 2 となる
+    const rowNum = idx + 2;
+    const categoryFormula = `=iferror(vlookup(A${rowNum},'サービス一覧'!A:D,3,false))`;
+    const detailFormula = `=iferror(vlookup(A${rowNum},'サービス一覧'!A:D,4,false))`;
+
+    row.push(rowTotal, avg, prevAvg, diff, categoryFormula, detailFormula);
+    rows.push(row);
+  });
+
+  // --- 列合計（最下行）の計算 ---
   const colTotals = ['計'];
-  for (let c = 1; c < header.length; c++) {
+  // 数値列（月別〜差額まで）のみ合計を出す
+  const lastNumColIdx = header.indexOf('差額');
+  for (let c = 1; c <= lastNumColIdx; c++) {
     let sum = 0;
     for (let r = 1; r < rows.length; r++) {
-      sum += typeof rows[r][c] === 'number' ? rows[r][c] : 0;
+      const val = rows[r][c];
+      // 数式（文字列）は除外して数値のみ加算
+      if (typeof val === 'number') sum += val;
     }
     colTotals.push(sum);
   }
+  // カテゴリとサービス内容の列合計は空欄
+  colTotals.push('', '');
   rows.push(colTotals);
 
-  // シートへの書き込みと書式設定
+  // --- シートへの書き込み ---
   sheet.getRange(1, 1, rows.length, rows[0].length).setValues(rows);
+
+  // --- 書式設定と列幅の指定 ---
+  const lastCol = header.length;
+
+  sheet.setColumnWidths(1, lastCol, 85);
+  sheet.setColumnWidth(1, 300);
+  sheet.setColumnWidth(16, 95);
+  sheet.setColumnWidth(18, 168);
+  sheet.setColumnWidth(19, 419);
+
+  const fullRange = sheet.getRange(1, 1, rows.length, rows[0].length);
+
+  // 【追加】全体に格子状の罫線を引く (上, 左, 下, 右, 垂直, 水平)
+  fullRange.setBorder(
+    true,
+    true,
+    true,
+    true,
+    true,
+    true,
+    '#999999',
+    SpreadsheetApp.BorderStyle.SOLID
+  );
+
   if (rows.length > 1) {
+    // 数値範囲（月別〜差額まで）にカンマ区切りを適用
     sheet
-      .getRange(2, 2, rows.length - 1, header.length - 1)
+      .getRange(2, 2, rows.length - 1, lastNumColIdx)
       .setNumberFormat('#,##0');
   }
+
+  // デザイン調整
   sheet
     .getRange(1, 1, 1, header.length)
     .setBackground('#f3f3f3')
     .setFontWeight('bold');
+
+  // 最下行（列合計）の太字
   sheet.getRange(rows.length, 1, 1, header.length).setFontWeight('bold');
+
+  // 最下行の上側だけ二重線にする（合計を強調する）
+  sheet
+    .getRange(rows.length, 1, 1, header.length)
+    .setBorder(
+      true,
+      null,
+      null,
+      null,
+      null,
+      null,
+      '#000000',
+      SpreadsheetApp.BorderStyle.DOUBLE
+    );
+
   sheet.setFrozenRows(1);
   sheet.setFrozenColumns(1);
 }
@@ -344,14 +401,14 @@ function normalizeItemName_(name) {
     .toUpperCase();
 
   if (n.includes('1PASSWORD')) return '1Password';
-  if (n.includes('DOCKER, INC.')) return 'DOCKER, INC.';
-  if (n.includes('DRI*PVTLTRACKER')) return 'PIVOTAL TRACKER';
+  if (n.includes('DOCKER, INC.')) return 'Docker';
+  if (n.includes('DRI*PVTLTRACKER')) return 'Pivotal Tracker';
   if (n.includes('MAILTRAP')) return 'Mailtrap';
   if (n.includes('AMAZON WEB SERVICES')) return 'Amazon Web Services';
   if (n.includes('PAPERTRAIL-SOLARWINDS') || n.includes('SOLARWINDS'))
-    return 'PAPERTRAIL-SOLARWINDS';
-  if (n.includes('PULUMI CORPORATION')) return 'PULUMI CORPORATION';
-  if (n.includes('ROLLBAR')) return 'ROLLBAR';
+    return 'Papertrail';
+  if (n.includes('PULUMI CORPORATION')) return 'Pulumi';
+  if (n.includes('ROLLBAR')) return 'Rollbar';
   if (n.includes('WWW.DEEPL.COM') || n.includes('DEEPL')) return 'DeepL';
   if (n.includes('ZOOM')) return 'Zoom';
   if (n.includes('DROPBOX')) return 'Dropbox';
