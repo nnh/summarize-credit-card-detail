@@ -39,7 +39,7 @@ function normalizeItemName_(name) {
   if (n.includes('SKYPE')) return 'Skype';
   if (n.includes('オナマエドツトコムドメイン')) return 'お名前.COMドメイン';
   if (n.includes('LINEAR.APP')) return 'LINEAR.APP';
-  if (n.includes('CLAUDE.AI')) return 'Claude.AI';
+  if (n.includes('CLAUDE.AI') || n.includes('CLAUDE SUB')) return 'Claude.AI';
   if (n.includes('ビジ得チャンス')) return 'ビジ得チャンス';
 
   return n;
