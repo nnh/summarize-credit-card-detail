@@ -115,6 +115,7 @@ function processCsvFiles_(folderId, sheetName, targetFileNames) {
 
   let importedCount = 0;
   const skippedFiles = [];
+  const invalidReport = []; // 想定フォーマットと異なりスキップした行の記録
 
   targetFileNames.forEach(fileName => {
     // CSVファイルのみを対象（拡張子チェック）
@@ -139,32 +140,65 @@ function processCsvFiles_(folderId, sheetName, targetFileNames) {
       lines.shift(); // 1行目（顧客名等）を削除
 
       const finalData = [];
+      const invalidLines = []; // このファイル内でスキップした行番号（元CSV基準）
       lines.forEach((line, index) => {
         const parts = line.split(',');
-        if (parts.length >= 6) {
-          const date = parts[0];
-          let amount = parts[parts.length - 2];
-          let extra = parts[parts.length - 1];
-          // 金額列の妥当性チェック
-          if (isNaN(amount.replace(/ /g, '').trim()) || amount === '') {
-            amount = parts[parts.length - 1];
-            extra = '';
-          }
-          const f3 = parts[parts.length - 3],
-            f2 = parts[parts.length - 4],
-            f1 = parts[parts.length - 5];
-          let itemName = parts
-            .slice(1, parts.length - 5)
-            .join(',')
-            .trim();
 
-          // 最終行（合計行）の判定
-          if (index === lines.length - 1)
-            itemName = '【合計金額】' + (itemName || '');
-
-          finalData.push([fileName, date, itemName, f1, f2, f3, amount, extra]);
+        // 最終行（合計行）は唯一の数値（合計金額）だけを拾う
+        if (index === lines.length - 1) {
+          const totalIdx = parts.findIndex(p => isNumericField_(p));
+          const amount = totalIdx !== -1 ? parts[totalIdx].trim() : '';
+          finalData.push([
+            fileName,
+            parts[0],
+            '【合計金額】',
+            '',
+            '',
+            '',
+            amount,
+            '',
+          ]);
+          return;
         }
+
+        // 明細行：店名の後ろに「利用金額・支払区分・回数・今回請求金額」の
+        // 数値4列が並ぶ。店名はカンマを含みうるため、最初の数値列を検出して
+        // 店名の範囲を確定する（末尾の摘要・手入力メモ・空列には依存しない）。
+        let firstNumIdx = -1;
+        for (let i = 1; i < parts.length; i++) {
+          if (isNumericField_(parts[i])) {
+            firstNumIdx = i;
+            break;
+          }
+        }
+
+        // 数値4列が揃わない行は取り込まず、警告対象として記録する
+        const hasFourNumerics =
+          firstNumIdx !== -1 &&
+          firstNumIdx + 3 < parts.length &&
+          isNumericField_(parts[firstNumIdx + 1]) &&
+          isNumericField_(parts[firstNumIdx + 2]) &&
+          isNumericField_(parts[firstNumIdx + 3]);
+        if (!hasFourNumerics) {
+          // 1行目（顧客名等）を削除済みのため、元CSVの行番号は index + 2
+          invalidLines.push(index + 2);
+          return;
+        }
+
+        const date = parts[0];
+        const f1 = parts[firstNumIdx].trim(); // 利用金額
+        const f2 = parts[firstNumIdx + 1].trim(); // 支払区分
+        const f3 = parts[firstNumIdx + 2].trim(); // 回数
+        const amount = parts[firstNumIdx + 3].trim(); // 今回請求金額
+        const extra = (parts[firstNumIdx + 4] || '').trim(); // 摘要（為替等）
+        const itemName = parts.slice(1, firstNumIdx).join(',').trim();
+
+        finalData.push([fileName, date, itemName, f1, f2, f3, amount, extra]);
       });
+
+      if (invalidLines.length > 0) {
+        invalidReport.push({ fileName, lines: invalidLines });
+      }
 
       if (finalData.length > 0) {
         sheet
@@ -188,6 +222,30 @@ function processCsvFiles_(folderId, sheetName, targetFileNames) {
   } else if (skippedFiles.length > 0 && targetFileNames.length === 1) {
     uiAlert_('指定されたファイルは既に取り込み済みです。');
   }
+
+  // 想定フォーマットと異なりスキップした行があれば警告する
+  if (invalidReport.length > 0) {
+    const detail = invalidReport
+      .map(r => r.fileName + '：' + r.lines.join(', ') + ' 行目')
+      .join('\n');
+    uiAlert_(
+      '次の行は想定フォーマットと異なるため取り込みをスキップしました。\n' +
+        '手入力による列ズレ等をご確認ください。\n\n' +
+        detail
+    );
+  }
+}
+
+/**
+ * フィールドが数値として扱えるかを判定する。
+ * 半角空白を除去した上で、空でなく数値に変換できる場合に true を返す。
+ * @param {*} value - 判定対象の値
+ * @returns {boolean} 数値とみなせるなら true
+ * @private
+ */
+function isNumericField_(value) {
+  const v = String(value).replace(/ /g, '').trim();
+  return v !== '' && !isNaN(v);
 }
 
 /**
